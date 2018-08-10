@@ -80,21 +80,31 @@ contract EcommerceStore {
     }
 
     function getProduct(uint _productId) view public returns (uint, string, string, string, string, uint, uint, uint, ProductStatus, ProductCondition) {
-        /*
-          https://solidity.readthedocs.io/en/latest/frequently-asked-questions.html#what-is-the-memory-keyword-what-does-it-do
-           memory keyword is to tell the EVM that this object is only used as a temporary variable. It will be cleared from memory
-           as soon as this function completes execution
-        */
+        
+        //  https://solidity.readthedocs.io/en/latest/frequently-asked-questions.html#what-is-the-memory-keyword-what-does-it-do
+        //   memory keyword is to tell the EVM that this object is only used as a temporary variable. It will be cleared from memory
+        //   as soon as this function completes execution
+        
         Product memory product = stores[productIdInStore[_productId]][_productId];
         return (product.id, product.name, product.category, product.imageLink, product.descLink, product.auctionStartTime,
         product.auctionEndTime, product.startPrice, product.status, product.condition);
     }
+    // function getProduct(uint _productId) view public returns (Product) {
+    // /*
+    //   https://solidity.readthedocs.io/en/latest/frequently-asked-questions.html#what-is-the-memory-keyword-what-does-it-do
+    //    memory keyword is to tell the EVM that this object is only used as a temporary variable. It will be cleared from memory
+    //    as soon as this function completes execution
+    // */
+    //     Product memory product = stores[productIdInStore[_productId]][_productId];
+    //     return product;
+    // }
 
     function bid(uint _productId, bytes32 _bid) payable public returns (bool) {
         Product storage product = stores[productIdInStore[_productId]][_productId];
         require (now >= product.auctionStartTime);
         require (now <= product.auctionEndTime);
         require (msg.value > product.startPrice);
+        //这个产品没竞标过
         require (product.bids[msg.sender][_bid].bidder == 0);
         product.bids[msg.sender][_bid] = Bid(msg.sender, _productId, msg.value, false);
         product.totalBids += 1;
@@ -112,14 +122,15 @@ contract EcommerceStore {
         return result;
     }
 
-    function revealBid(uint _productId, string _amount, string _secret) public {
+    //当只有一个人参与时，返回的buyer居然是000000000000，这是为什么？？
+    function revealBid(uint _productId, string _amount, string _secret) payable public {
         Product storage product = stores[productIdInStore[_productId]][_productId];
-        require (now > product.auctionEndTime);
+        //require (now > product.auctionEndTime);
         bytes32 sealedBid = sha3(_amount, _secret);
 
         Bid memory bidInfo = product.bids[msg.sender][sealedBid];
-        require (bidInfo.bidder > 0);
-        require (bidInfo.revealed == false);
+        //require (bidInfo.bidder > 0);
+        //require (bidInfo.revealed == false);
 
         uint refund;
 
@@ -167,14 +178,15 @@ contract EcommerceStore {
     }
 
     function finalizeAuction(uint _productId) public {
-        Product memory product = stores[productIdInStore[_productId]][_productId];
+        Product storage product = stores[productIdInStore[_productId]][_productId];
         // 48 hours to reveal the bid
         require(now > product.auctionEndTime);
         require(product.status == ProductStatus.Open);
-        require(product.highestBidder != msg.sender);
-        require(productIdInStore[_productId] != msg.sender);
+        //require(product.highestBidder != msg.sender);
+        //require(productIdInStore[_productId] != msg.sender);
 
         if (product.totalBids == 0) {
+            //成功
             product.status = ProductStatus.Unsold;
         } else {
             // Whoever finalizes the auction is the arbiter
