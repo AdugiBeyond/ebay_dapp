@@ -70,15 +70,21 @@ window.App = {
             console.log(sealedBid + " for " + productId + " from user: " + userNumber);
             EcommerceStore.deployed().then(function (i) {
                 console.log("bidding begin...");
+                //var e = i.allEvents({fromBlock: 0, toBlock: 'latest'});
+                var e = i.allEvents({});
+                //var e = i.BidEvent({fromBlock: 0, toBlock: 'latest'});
+                //var e = i.BidEvent({});
+                // e.watch(function (err, res){
+                //     console.log("BidEvent :", res);
+                // })
                 i.bid(parseInt(productId), sealedBid, {
                     value: web3.toWei(sendAmount),
                     from: web3.eth.accounts[userNumber],
                     gas: 440000
-                }).then(
-                    function (f) {
+                }).then( function (f) {
+                        console.log("after bidding result : ", f)
                         $("#msg").html("Your bid has been successfully submitted!");
                         $("#msg").show();
-                        console.log(f)
                     }
                 ).catch((err) => {
                     console.log("bidding:", err);
@@ -110,7 +116,8 @@ window.App = {
                     function (f) {
                         $("#msg").show();
                         $("#msg").html("Your bid has been successfully revealed!");
-                        console.log(f)
+                        //f是这个交易动作的返回值,包括hash，logs等
+                        console.log("after revealing:", f)
                     }
                 )
             });
@@ -123,6 +130,10 @@ window.App = {
             let userNumber = $("#finalize-user-number").val();
             console.log("userNumber:", userNumber);
             EcommerceStore.deployed().then(function (i) {
+                // var e = i.CreateEscrow({});
+                // e.watch(function (err, res){
+                //     console.log("finalize-auction res :", res);
+                // })
                 i.finalizeAuction(parseInt(productId), {
                     from: web3.eth.accounts[userNumber],
                     gas: 4400000
@@ -177,9 +188,50 @@ window.App = {
 
             alert("refund the funds!");
         });
-    }
 
-}
+        //监听duke
+        let elmo = function (me) {
+            var self = me;
+            EcommerceStore.deployed().then(function (i) {
+                //console.log("got events : ", i.allEvents());
+                var events = i.allEvents({});
+                events.watch(function (error, result) {
+                    console.log("In events, reslut :", result);
+
+                    if (error) {
+                        console.log(error);
+                    } else {
+                        for (var key in result) {
+                            if (result.hasOwnProperty(key)) {
+                                if (key !== "args") {
+                                     //console.log(key + " : " + result[key]);
+                                } else {
+                                    let args = result["args"];
+                                    var message = "";
+                                    for (var arg in args) {
+
+                                        if (args.hasOwnProperty(arg)) {
+                                            var outcome = args[arg];
+                                            if (arg === 'value') {
+                                                outcome = web3.fromWei(outcome, 'ether');
+                                            }
+                                            message = message + " " + arg + ": " + outcome + "   ";
+                                            //console.log("arg.. " + arg + ": " + outcome);
+                                        }
+                                    }
+                                    $("#msg2").show();
+                                    $("#msg2").html(message);
+                                }
+                            }
+                        }
+                    }
+                })
+            });
+        };
+        elmo(this);
+
+    }//start
+}//app
 
 window.addEventListener('load', function () {
     // Checking if Web3 has been injected by the browser (Mist/MetaMask)
@@ -315,7 +367,7 @@ function renderProducts(div, filters) {
  */
 
 function buildProduct(product, id) {
-    console.log(product)
+    //console.log(product)
     let node = $("<div/>");
     node.addClass("col-sm-3 text-center col-margin-bottom-1");
     //node.append("<img src='https://ipfs.io/ipfs/" + product[3] + "' width='150px' />");
@@ -443,11 +495,12 @@ Exercise
 - Update the code for product details page so instead of querying the blockchain,
 you query the MongoDB for a product with specific ID and render the page.
 */
+//duke
 function renderProductDetails(productId) {
     // https://www.zastrin.com/courses/3/lessons/7-3
     EcommerceStore.deployed().then(function (i) {
         i.getProduct.call(productId).then(function (p) {
-            console.log("renderProductDetails: ", p);
+            //console.log("renderProductDetails: ", p);
             let content = "";
 
             //此处有两种显示方式， 还不清楚到底什么时候用哪一种，因为有孔壹的版本要用下面的，git上的要用上面的
@@ -503,7 +556,7 @@ function renderProductDetails(productId) {
                     //在EcommerceStore中封装了一层
                     i.escrowInfo.call(productId).then(function (f) {
                         //为什么显示buyer为00000000000000
-                        //console.log("in i.escrowInfo:", f);
+                        console.log("in i.escrowInfo:", f, "productId:", productId);
                         $("#buyer").html('Buyer: ' + f[0]);
                         $("#seller").html('Seller: ' + f[1]);
                         $("#arbiter").html('Arbiter: ' + f[2]);
@@ -519,13 +572,13 @@ function renderProductDetails(productId) {
                 //
                 $("#product-status").html("Product was not sold");
             } else if (currentTime < parseInt(p[6])) {
-                //竞标界面
+                //第一阶段, 竞标界面
                 $("#bidding").show();
-            } else if (currentTime < (parseInt(p[6]) + 120)) {
-                //揭标时间控制 200s
+            } else if (currentTime < (parseInt(p[6]) + 20)) {//duke
+                //第二阶段, 揭标时间控制 120s
                 $("#revealing").show();
             } else {
-                //揭标结束，显示仲裁界面
+                //第三阶段, 揭标结束，显示仲裁界面
                 $("#finalize-auction").show();
             }
         })

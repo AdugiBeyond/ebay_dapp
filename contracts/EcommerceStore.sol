@@ -7,6 +7,7 @@ contract EcommerceStore {
 
     uint public productIndex;
 
+    //产品id=》仲裁合约
     mapping (uint => address) productEscrow;
 
     /*
@@ -67,6 +68,8 @@ contract EcommerceStore {
 
     // https://www.zastrin.com/courses/3/lessons/8-6
     event NewProduct(uint _productId, string _name, string _category, string _imageLink, string _descLink, uint _auctionStartTime, uint _auctionEndTime, uint _startPrice, uint _productCondition);
+    event BidEvent(address _bider, uint _productId);
+    event FinalizeAuctionEvent(ProductStatus _status, address buyer, uint refund);
 
     function addProductToStore(string _name, string _category, string _imageLink, string _descLink, uint _auctionStartTime,
         uint _auctionEndTime, uint _startPrice, uint _productCondition) public {
@@ -106,8 +109,10 @@ contract EcommerceStore {
         require (msg.value > product.startPrice);
         //这个产品没竞标过
         require (product.bids[msg.sender][_bid].bidder == 0);
+        //竞标的时候，钱已经打过去了，在揭标的时候再返还，所以一定要记得揭标，否则就白白的损失掉了
         product.bids[msg.sender][_bid] = Bid(msg.sender, _productId, msg.value, false);
         product.totalBids += 1;
+        emit BidEvent(msg.sender, _productId);
         return true;
     }
 
@@ -122,41 +127,52 @@ contract EcommerceStore {
         return result;
     }
 
+    event RevealBidEvent(string info, address higheseBidder, uint refund, uint amount, bool isRevealed);
     //当只有一个人参与时，返回的buyer居然是000000000000，这是为什么？？
     function revealBid(uint _productId, string _amount, string _secret) payable public {
         Product storage product = stores[productIdInStore[_productId]][_productId];
-        //require (now > product.auctionEndTime);
+        require (now > product.auctionEndTime);
         bytes32 sealedBid = sha3(_amount, _secret);
 
         Bid memory bidInfo = product.bids[msg.sender][sealedBid];
-        //require (bidInfo.bidder > 0);
-        //require (bidInfo.revealed == false);
+        emit RevealBidEvent("揭标人信息： ", bidInfo.bidder, bidInfo.productId, bidInfo.value, bidInfo.revealed);
+
+        //必须是竞标过的人才有资格揭标
+        require (bidInfo.bidder > 0);
+        require (bidInfo.revealed == false);
 
         uint refund;
 
         uint amount = stringToUint(_amount);
 
+        //我特么真是傻逼了，这个揭标数值一直填错了，导致总是在这个if分支跳出去。
+        //应该填bid amount，但是我一直填的是send amount，send amount总是大于bid amount的（好像逻辑不太对,再研究）
         if(bidInfo.value < amount) {
             // They didn't send enough amount, they lost
             refund = bidInfo.value;
         } else {
             // If first to reveal set as highest bidder
+            //第一个揭标的人将被设置为最高竞标，包括bider和bid金额
             if (address(product.highestBidder) == 0) {
                 product.highestBidder = msg.sender;
                 product.highestBid = amount;
                 product.secondHighestBid = product.startPrice;
                 refund = bidInfo.value - amount;
             } else {
+                //如果非第一个揭标的人的金额大于所有人的金额，那么他将成为最高竞标者，更新相关信息
                 if (amount > product.highestBid) {
                     product.secondHighestBid = product.highestBid;
+                    //将原来最高竞标者的钱原路返回
                     product.highestBidder.transfer(product.highestBid);
                     product.highestBidder = msg.sender;
                     product.highestBid = amount;
                     refund = bidInfo.value - amount;
                 } else if (amount > product.secondHighestBid) {
+                    //如果这个揭标人成为第二高的竞标人，那么更新第二高的信息
                     product.secondHighestBid = amount;
                     refund = amount;
                 } else {
+                    //没有达到第一或第二的价格，原路返回
                     refund = amount;
                 }
             }
@@ -165,6 +181,8 @@ contract EcommerceStore {
                 product.bids[msg.sender][sealedBid].revealed = true;
             }
         }
+
+        emit RevealBidEvent("揭标结束：", product.highestBidder, refund, amount, bidInfo.revealed);
     }
 
     function highestBidderInfo(uint _productId) view public returns (address, uint, uint) {
@@ -190,6 +208,8 @@ contract EcommerceStore {
             product.status = ProductStatus.Unsold;
         } else {
             // Whoever finalizes the auction is the arbiter
+            //生成一个合约，合约是个地址，传入四个参数，value字段是msg.value
+                                                                        //(productId, buyer, seller, arbiter)
             Escrow escrow = (new Escrow).value(product.secondHighestBid)(_productId, product.highestBidder, productIdInStore[_productId], msg.sender);
             productEscrow[_productId] = address(escrow);
             product.status = ProductStatus.Sold;
@@ -197,7 +217,7 @@ contract EcommerceStore {
             // Refund the difference
             uint refund = product.highestBid - product.secondHighestBid;
             product.highestBidder.transfer(refund);
-
+            emit FinalizeAuctionEvent(product.status, product.highestBidder, refund);
         }
     }
 
