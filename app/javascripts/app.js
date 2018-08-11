@@ -193,6 +193,7 @@ window.App = {
         });
 
         //监听duke
+        /*
         let elmo = function (me) {
             var self = me;
             EcommerceStore.deployed().then(function (i) {
@@ -232,6 +233,7 @@ window.App = {
             });
         };
         elmo(this);
+        */
 
     }//start
 }//app
@@ -252,51 +254,47 @@ window.addEventListener('load', function () {
 })
 
 
-/*
 function renderStore() {
 // https://www.zastrin.com/courses/3/lessons/8-7
   renderProducts("product-list", {});
   renderProducts("product-reveal-list", {productStatus: "reveal"});
   renderProducts("product-finalize-list", {productStatus: "finalize"});
   categories.forEach(function(value) {
-    $("#categories").append("<div>" + value + "");
+    //$("#categories").append("<div>" + value + "");
+    $("#categories").append("<div>" + "<a href=\"#\">" + value + "</>" + "");
   })
 }
-*/
 
+/*
+//在主页面显示
 function renderStore() {
     EcommerceStore.deployed().then(function (i) {
         console.log("renderStore deploy ok")
 
-        /*
-        i.getProduct.call(1).then(function(p) {
-            $("#product-list").append(buildProduct(p));
-        });
-        i.getProduct.call(2).then(function(p) {
-            $("#product-list").append(buildProduct(p));
-        });
-        i.getProduct.call(3).then(function(p) {
-            $("#product-list").append(buildProduct(p));
-        });
-        i.getProduct.call(4).then(function(p) {
-            $("#product-list").append(buildProduct(p));
-        });
-        i.getProduct.call(5).then(function(p) {
-            $("#product-list").append(buildProduct(p));
-        });
-        i.getProduct.call(6).then(function(p) {
-            $("#product-list").append(buildProduct(p));
-        });
-        i.getProduct.call(7).then(function(p) {
-            $("#product-list").append(buildProduct(p));
-        });
-        i.getProduct.call(8).then(function(p) {
-            $("#product-list").append(buildProduct(p));
-        });
-        */
-
-
-
+        // i.getProduct.call(1).then(function(p) {
+        //     $("#product-list").append(buildProduct(p));
+        // });
+        // i.getProduct.call(2).then(function(p) {
+        //     $("#product-list").append(buildProduct(p));
+        // });
+        // i.getProduct.call(3).then(function(p) {
+        //     $("#product-list").append(buildProduct(p));
+        // });
+        // i.getProduct.call(4).then(function(p) {
+        //     $("#product-list").append(buildProduct(p));
+        // });
+        // i.getProduct.call(5).then(function(p) {
+        //     $("#product-list").append(buildProduct(p));
+        // });
+        // i.getProduct.call(6).then(function(p) {
+        //     $("#product-list").append(buildProduct(p));
+        // });
+        // i.getProduct.call(7).then(function(p) {
+        //     $("#product-list").append(buildProduct(p));
+        // });
+        // i.getProduct.call(8).then(function(p) {
+        //     $("#product-list").append(buildProduct(p));
+        // });
         let goober = function (id) {
             return function (p) {
                 $("#product-list").append(buildProduct(p, id));
@@ -309,7 +307,13 @@ function renderStore() {
         }
 
     });
+
+    categories.forEach(function(value) {
+        $("#categories").append("<div>" + value + "");
+    })
+
 }
+*/
 /*
 function renderStore() {
  //https://www.zastrin.com/courses/3/lessons/5-4
@@ -324,7 +328,6 @@ function renderStore() {
 }
 */
 
-/*
 //用到了MongoDB，所以起不来
 function renderProducts(div, filters) {
   //https://www.zastrin.com/courses/3/lessons/8-7
@@ -351,7 +354,6 @@ function renderProducts(div, filters) {
     }
   })
 }
-*/
 
 /*
 {
@@ -369,21 +371,22 @@ function renderProducts(div, filters) {
 }
  */
 
-function buildProduct(product, id) {
+function buildProduct(product) {
     //console.log(product)
     let node = $("<div/>");
     node.addClass("col-sm-3 text-center col-margin-bottom-1");
     //node.append("<img src='https://ipfs.io/ipfs/" + product[3] + "' width='150px' />");
     //node.append("<img src='https://ipfs.io/ipfs/" + product[3] + "' width='150px' />");
 
-    node.append("<img src='http://localhost:8080/ipfs/" + product[3] + "' width='150px' />");
-    node.append("<div>" + product[1] + "</div>");
-    node.append("<div>" + product[2] + "</div>");
-    node.append("<div>" + new Date(product[5] * 1000) + "</div>");
-    node.append("<div>" + new Date(product[6] * 1000) + "</div>");
-    node.append("<div>Ether " + web3.fromWei(product[7], 'ether') + "</div>");
-    //node.append("<a href=product.html?id=" + product.blockchainId + ">Details</a>");
-    node.append("<a href=product.html?id=" + id + ">Details</a>");
+    //node.append("<img src='http://localhost:8080/ipfs/" + product[3] + "' width='150px' />");
+    node.append("<img src='http://localhost:8080/ipfs/" + product.ipfsImageHash+ "' width='150px' />");
+    node.append("<div>" + product.name + "</div>");
+    node.append("<div>" + product.category + "</div>");
+    node.append("<div>" + new Date(product.auctionStartTime * 1000) + "</div>");
+    node.append("<div>" + new Date(product.auctionEndTime * 1000) + "</div>");
+    node.append("<div>Ether " + web3.fromWei(product.price, 'ether') + "</div>");
+    node.append("<a class=\"btn btn-primary\" + href=product.html?id=" + product.blockchainId + ">Details</a>");
+    //node.append("<a href=product.html?id=" + id + ">Details</a>");
     return node;
 }
 

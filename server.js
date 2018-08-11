@@ -1,7 +1,7 @@
 var ecommerce_store_artifacts = require('./build/contracts/EcommerceStore.json')
 var contract = require('truffle-contract')
 var Web3 = require('web3')
-var provider = new Web3.providers.HttpProvider("http://localhost:8545");
+var provider = new Web3.providers.HttpProvider("http://localhost:9545");
 var EcommerceStore = contract(ecommerce_store_artifacts);
 EcommerceStore.setProvider(provider);
 /*
