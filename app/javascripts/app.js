@@ -79,7 +79,8 @@ window.App = {
                 // })
                 i.bid(parseInt(productId), sealedBid, {
                     value: web3.toWei(sendAmount),
-                    from: web3.eth.accounts[userNumber],
+                    //from: web3.eth.accounts[userNumber],
+                    from: web3.eth.accounts[0],
                     gas: 440000
                 }).then( function (f) {
                         console.log("after bidding result : ", f)
@@ -110,7 +111,8 @@ window.App = {
             console.log("revealing product id :" , productId, "userNumber :", userNumber);
             EcommerceStore.deployed().then(function (i) {
                 i.revealBid(parseInt(productId), web3.toWei(amount).toString(), secretText, {
-                    from: web3.eth.accounts[userNumber],
+                    //from: web3.eth.accounts[userNumber],
+                    from: web3.eth.accounts[0],
                     gas: 440000
                 }).then(
                     function (f) {
@@ -135,7 +137,8 @@ window.App = {
                 //     console.log("finalize-auction res :", res);
                 // })
                 i.finalizeAuction(parseInt(productId), {
-                    from: web3.eth.accounts[userNumber],
+                    //from: web3.eth.accounts[userNumber],
+                    from: web3.eth.accounts[0],
                     gas: 4400000
                 }).then(
                     function (f) {
